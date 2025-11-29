@@ -14,7 +14,18 @@ const readServersData = (): any[] => {
   try {
     const data = fs.readFileSync(resolvedDatabasePath, 'utf8');
     return JSON.parse(data);
-  } catch (error) {
+  } catch (error: any) {
+    // 如果文件不存在，则创建新文件并写入 []
+    if (error?.code === 'ENOENT') {
+      const initialData: any[] = [];
+      // 确保目录存在
+      const dir = path.dirname(resolvedDatabasePath);
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+      }
+      fs.writeFileSync(resolvedDatabasePath, JSON.stringify(initialData, null, 2));
+      return initialData;
+    }
     LogService.error("Failed to read server data", { error });
     return [];
   }
