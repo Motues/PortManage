@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PortSentinel Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .bg-app-dark { background-color: #0b0e14; }
+        .bg-sidebar { background-color: #0f131a; }
+        .bg-card-dark { background-color: #111827; }
+        .bg-card-dash { background-color: #131823; }
+        .input-dark { background-color: #1f2937; border-color: #374151; color: white; }
+        .input-dark:focus { border-color: #3b82f6; outline: none; ring: 1px; ring-color: #3b82f6; }
+        
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #0f131a; }
+        ::-webkit-scrollbar-thumb { background: #374151; border-radius: 3px; }
+        
+        .fade-enter-active, .fade-leave-active { transition: opacity 0.2s ease; }
+        .fade-enter-from, .fade-leave-to { opacity: 0; }
+    </style>
+</head>
+<body class="bg-app-dark text-white h-screen w-full overflow-hidden">
+
+    <div id="app" class="h-full w-full">
+        
+        <transition name="fade">
+            <div v-if="view === 'login'" class="h-full w-full flex items-center justify-center">
+                <div class="bg-card-dark p-8 rounded-xl shadow-2xl w-full max-w-md border border-gray-800">
+                    <div class="text-center mb-8">
+                        <h1 class="text-3xl font-bold tracking-tight text-white mb-2">PortSentinel</h1>
+                        <p class="text-gray-400 text-sm">Secure Infrastructure Management</p>
+                    </div>
+            
+                    <form @submit.prevent="handleLogin">
+                        <div class="mb-4">
+                            <label class="block text-gray-400 text-xs font-medium mb-2">Username</label>
+                            <input v-model="loginForm.name" class="input-dark w-full py-3 px-4 rounded-lg border" type="text" placeholder="Enter username">
+                        </div>
+                        
+                        <div class="mb-8">
+                            <label class="block text-gray-400 text-xs font-medium mb-2">Password</label>
+                            <input v-model="loginForm.password" class="input-dark w-full py-3 px-4 rounded-lg border tracking-widest" type="password" placeholder="••••••">
+                        </div>
+            
+                        <button :disabled="loading" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-medium py-3 px-4 rounded-lg transition-colors shadow-lg shadow-blue-900/20 disabled:opacity-50">
+                            {{ loading ? 'Authenticating...' : 'Access Dashboard' }}
+                        </button>
+                        
+                        <p v-if="errorMsg" class="mt-4 text-center text-red-400 text-sm">{{ errorMsg }}</p>
+                    </form>
+                </div>
+            </div>
+        </transition>
+
+        <div v-if="view === 'dashboard'" class="h-full w-full flex overflow-hidden">
+            
+            <aside class="w-72 bg-sidebar border-r border-gray-800 flex flex-col shrink-0 z-20">
+                <div class="p-5 border-b border-gray-800 flex items-center justify-between">
+                    <h2 class="text-lg font-bold text-white">Servers</h2>
+                    <button @click="openModal('add-server')" class="bg-blue-600 hover:bg-blue-500 text-xs font-medium px-3 py-1.5 rounded text-white transition">+ New</button>
+                </div>
+    
+                <div class="flex-1 overflow-y-auto p-3 space-y-1">
+                    <div v-for="srv in servers" :key="srv.id" 
+                         @click="selectServer(srv)"
+                         :class="['p-3 rounded-lg cursor-pointer border transition-all relative group', 
+                                  selectedServer?.id === srv.id ? 'bg-blue-900/10 border-blue-900/50' : 'border-transparent hover:bg-gray-800/50']">
+                        
+                        <div v-if="selectedServer?.id === srv.id" class="absolute left-0 top-0 bottom-0 w-1 bg-blue-500 rounded-l-lg"></div>
+
+                        <div class="flex justify-between items-start mb-1 pl-2">
+                            <div class="flex items-center gap-2">
+                                <div :class="['w-2 h-2 rounded-full', srv.active ? 'bg-green-500 shadow-[0_0_5px_rgba(34,197,94,0.5)]' : 'bg-gray-600']"></div>
+                                <span class="font-medium text-gray-200 text-sm">{{ srv.name }}</span>
+                            </div>
+                            <span class="bg-gray-800 text-gray-400 text-[10px] font-bold px-1.5 py-0.5 rounded">{{ srv.ports?.length || 0 }}</span>
+                        </div>
+                        <div class="flex justify-between items-end pl-2 mt-2">
+                            <div class="text-gray-500 text-[11px] font-mono">{{ srv.ip }}</div>
+                            <div class="text-gray-600 text-[11px]">{{ srv.region }}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="p-4 border-t border-gray-800 flex justify-between items-center text-xs bg-sidebar">
+                    <span class="text-gray-500">Key: <span class="text-gray-400 font-mono">{{ authKey.substring(0,8) }}...</span></span>
+                    <button @click="logout" class="text-red-400 hover:text-red-300 transition-colors">Logout</button>
+                </div>
+            </aside>
+    
+            <main class="flex-1 overflow-y-auto p-6 md:p-8 relative bg-app-dark" v-if="selectedServer">
+                
+                <div class="bg-card-dash border border-gray-800 rounded-xl p-6 mb-6 shadow-sm">
+                    <div class="flex flex-col md:flex-row justify-between md:items-center gap-4">
+                        <div>
+                            <div class="flex items-center gap-3 mb-2">
+                                <h1 class="text-2xl font-bold text-white">{{ selectedServer.name }}</h1>
+                                <span v-if="selectedServer.active" class="px-2 py-0.5 rounded text-xs font-bold bg-green-500/10 text-green-500 border border-green-500/20">ACTIVE</span>
+                                <span v-else class="px-2 py-0.5 rounded text-xs font-bold bg-gray-500/10 text-gray-500 border border-gray-500/20">INACTIVE</span>
+                            </div>
+                            <div class="flex flex-wrap items-center text-sm text-gray-400 font-mono gap-x-4 gap-y-1">
+                                <span class="flex items-center gap-1"><span class="text-gray-600">IP:</span> {{ selectedServer.ip }}</span>
+                                <span class="flex items-center gap-1"><span class="text-gray-600">OS:</span> {{ selectedServer.os }}</span>
+                                <span class="flex items-center gap-1"><span class="text-gray-600">LOC:</span> {{ selectedServer.region }}</span>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <button @click="openModal('edit-server')" class="px-4 py-2 bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-lg text-sm text-gray-300 transition">Edit Server</button>
+                            <button @click="deleteServer" class="px-4 py-2 bg-red-900/20 hover:bg-red-900/40 text-red-400 border border-red-900/30 rounded-lg text-sm transition">Delete</button>
+                        </div>
+                    </div>
+                </div>
+    
+                <div class="bg-card-dash border border-gray-800 rounded-xl p-6 shadow-sm">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="text-lg font-semibold text-white">Port Configuration</h3>
+                        <button @click="openModal('add-port')" class="bg-blue-600 hover:bg-blue-500 text-white font-medium py-2 px-4 rounded-lg text-sm transition shadow-lg shadow-blue-900/20">
+                            + Add Port
+                        </button>
+                    </div>
+    
+                    <div class="w-full overflow-x-auto">
+                        <table class="w-full text-left text-sm whitespace-nowrap">
+                            <thead>
+                                <tr class="text-gray-500 border-b border-gray-800">
+                                    <th class="pb-3 px-2 font-semibold uppercase text-xs">Port</th>
+                                    <th class="pb-3 px-2 font-semibold uppercase text-xs">Service</th>
+                                    <th class="pb-3 px-2 font-semibold uppercase text-xs">Domain</th>
+                                    <th class="pb-3 px-2 font-semibold uppercase text-xs">Info</th>
+                                    <th class="pb-3 px-2 font-semibold uppercase text-xs">State</th>
+                                    <th class="pb-3 px-2 font-semibold uppercase text-xs text-right">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody class="text-gray-300">
+                                <tr v-for="port in selectedServer.ports" :key="port.port" class="border-b border-gray-800/50 hover:bg-gray-800/30 transition">
+                                    <td class="py-3 px-2 font-mono font-medium text-blue-400">{{ port.port }}</td>
+                                    <td class="py-3 px-2">{{ port.service }}</td>
+                                    <td class="py-3 px-2 text-gray-400 font-mono text-xs">{{ port.domain || '-' }}</td>
+                                    <td class="py-3 px-2 text-gray-500 text-xs">{{ port.info || '-' }}</td>
+                                    <td class="py-3 px-2">
+                                        <span :class="stateClass(port.state)" class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold border">
+                                            {{ port.state }}
+                                        </span>
+                                    </td>
+                                    <td class="py-3 px-2 text-right">
+                                        <div class="flex items-center justify-end gap-3">
+                                            <button @click="openModal('edit-port', port)" class="text-blue-400 hover:text-blue-300 transition" title="Edit Port">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                                </svg>
+                                            </button>
+                                            <button @click="deletePort(port.port)" class="text-gray-500 hover:text-red-400 transition" title="Delete Port">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr v-if="!selectedServer.ports || selectedServer.ports.length === 0">
+                                    <td colspan="6" class="py-8 text-center text-gray-500">No ports configured for this server.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </main>
+
+            <main v-else class="flex-1 flex items-center justify-center text-gray-500 flex-col gap-2">
+                <p>Select a server from the sidebar</p>
+            </main>
+        </div>
+
+        <div v-if="activeModal" class="fixed inset-0 bg-black/80 z-50 flex items-center justify-center backdrop-blur-sm" @click.self="closeModal">
+            
+            <div v-if="activeModal === 'add-server' || activeModal === 'edit-server'" class="bg-card-dark p-6 rounded-xl shadow-2xl w-full max-w-lg border border-gray-700">
+                <h3 class="text-xl font-bold mb-6 text-white">{{ activeModal === 'add-server' ? 'New Server' : 'Edit Server' }}</h3>
+                <form @submit.prevent="submitServer">
+                    <div class="mb-4">
+                        <label class="block text-gray-400 text-xs font-medium mb-1">Server Name</label>
+                        <input v-model="serverForm.name" type="text" class="input-dark w-full py-2 px-3 rounded text-sm" required>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label class="block text-gray-400 text-xs font-medium mb-1">IP Address</label>
+                            <input v-model="serverForm.ip" type="text" class="input-dark w-full py-2 px-3 rounded text-sm" required>
+                        </div>
+                        <div>
+                            <label class="block text-gray-400 text-xs font-medium mb-1">OS Version</label>
+                            <input v-model="serverForm.os" type="text" class="input-dark w-full py-2 px-3 rounded text-sm">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4 mb-6">
+                        <div>
+                            <label class="block text-gray-400 text-xs font-medium mb-1">Region</label>
+                            <input v-model="serverForm.region" type="text" class="input-dark w-full py-2 px-3 rounded text-sm">
+                        </div>
+                        <div class="flex items-center pt-5">
+                            <label class="flex items-center cursor-pointer">
+                                <input v-model="serverForm.active" type="checkbox" class="form-checkbox h-4 w-4 text-blue-600 rounded bg-gray-800 border-gray-600 focus:ring-offset-gray-900">
+                                <span class="ml-2 text-sm text-gray-300">Active Status</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-end space-x-3">
+                        <button type="button" @click="closeModal" class="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-xs text-white transition">Cancel</button>
+                        <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-lg text-xs font-medium text-white transition">Save</button>
+                    </div>
+                </form>
+            </div>
+
+            <div v-if="activeModal === 'add-port' || activeModal === 'edit-port'" class="bg-card-dark p-6 rounded-xl shadow-2xl w-full max-w-lg border border-gray-700">
+                <h3 class="text-xl font-bold mb-6 text-white">{{ activeModal === 'add-port' ? 'Add Port Rule' : 'Edit Port Rule' }}</h3>
+                <form @submit.prevent="submitPort">
+                    <div class="grid grid-cols-3 gap-4 mb-4">
+                        <div class="col-span-1">
+                            <label class="block text-gray-400 text-xs font-medium mb-1">Port</label>
+                            <input v-model.number="portForm.port" type="number" class="input-dark w-full py-2 px-3 rounded text-sm" placeholder="80" required>
+                        </div>
+                        <div class="col-span-2">
+                            <label class="block text-gray-400 text-xs font-medium mb-1">Service</label>
+                            <input v-model="portForm.service" type="text" class="input-dark w-full py-2 px-3 rounded text-sm" placeholder="HTTP" required>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="block text-gray-400 text-xs font-medium mb-1">State</label>
+                        <select v-model="portForm.state" class="input-dark w-full py-2 px-3 rounded text-sm">
+                            <option value="OPEN">OPEN</option>
+                            <option value="FILTERED">FILTERED</option>
+                            <option value="CLOSED">CLOSED</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="block text-gray-400 text-xs font-medium mb-1">Domain (Optional)</label>
+                        <input v-model="portForm.domain" type="text" class="input-dark w-full py-2 px-3 rounded text-sm" placeholder="e.g. app.example.com">
+                    </div>
+
+                    <div class="mb-6">
+                        <label class="block text-gray-400 text-xs font-medium mb-1">Info / Description</label>
+                        <input v-model="portForm.info" type="text" class="input-dark w-full py-2 px-3 rounded text-sm" placeholder="e.g. Main production entry">
+                    </div>
+
+                    <div class="flex justify-end space-x-3">
+                        <button type="button" @click="closeModal" class="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-xs text-white transition">Cancel</button>
+                        <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-lg text-xs font-medium text-white transition">{{ activeModal === 'add-port' ? 'Add Port' : 'Save Changes' }}</button>
+                    </div>
+                </form>
+            </div>
+
+        </div>
+
+    </div>
+
+    <script>
+        const { createApp, ref, reactive, onMounted } = Vue;
+
+        createApp({
+            setup() {
+                // --- 配置 ---
+                const API_BASE = '/api';
+                
+                // --- 响应式状态 ---
+                const view = ref('login'); 
+                const authKey = ref('');
+                const servers = ref([]);
+                const selectedServer = ref(null);
+                const activeModal = ref(null); 
+                const loading = ref(false);
+                const errorMsg = ref('');
+
+                // 用于编辑端口时，记录旧端口号以便API定位
+                const originalPort = ref(null);
+
+                // 表单数据
+                const loginForm = reactive({ name: '', password: '' });
+                const serverForm = reactive({ id: '', name: '', ip: '', os: '', region: '', active: true });
+                const portForm = reactive({ port: '', service: '', state: 'OPEN', domain: '', info: '' });
+
+                // --- API 封装 ---
+                const api = async (endpoint, options = {}) => {
+                    const sep = endpoint.includes('?') ? '&' : '?';
+                    const finalUrl = `${API_BASE}${endpoint}${sep}key=${authKey.value}`;
+
+                    try {
+                        const res = await fetch(finalUrl, {
+                            ...options,
+                            headers: { 'Content-Type': 'application/json', ...options.headers }
+                        });
+
+                        const data = await res.json();
+
+                        if (res.status === 401 || data.message === "Invalid Key") {
+                            logout();
+                            throw new Error("Session expired");
+                        }
+
+                        if (!res.ok) throw new Error(data.message || 'Request failed');
+                        return data;
+                    } catch (e) {
+                        console.error("API Error:", e);
+                        if (e.message !== "Session expired") alert(e.message);
+                        throw e;
+                    }
+                };
+
+                // --- 业务逻辑 ---
+                onMounted(() => {
+                    const savedKey = localStorage.getItem('ps_key');
+                    if (savedKey) {
+                        authKey.value = savedKey;
+                        loadServers().then(() => view.value = 'dashboard').catch(() => {});
+                    }
+                });
+
+                const handleLogin = async () => {
+                    loading.value = true;
+                    errorMsg.value = '';
+                    try {
+                        const res = await fetch(`${API_BASE}/login`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(loginForm)
+                        });
+                        const data = await res.json();
+                        
+                        if (res.ok && data.key) {
+                            authKey.value = data.key;
+                            localStorage.setItem('ps_key', data.key);
+                            view.value = 'dashboard';
+                            loadServers();
+                        } else {
+                            errorMsg.value = data.message || 'Login failed';
+                        }
+                    } catch (e) {
+                        errorMsg.value = 'Network error';
+                    } finally {
+                        loading.value = false;
+                    }
+                };
+
+                const logout = () => {
+                    localStorage.removeItem('ps_key');
+                    authKey.value = '';
+                    view.value = 'login';
+                    selectedServer.value = null;
+                };
+
+                const loadServers = async () => {
+                    try {
+                        const res = await api('/server');
+                        servers.value = res.data;
+                        if (selectedServer.value) {
+                            const updated = servers.value.find(s => s.id === selectedServer.value.id);
+                            selectedServer.value = updated || null;
+                        }
+                    } catch (e) {}
+                };
+
+                const selectServer = (srv) => {
+                    selectedServer.value = srv;
+                };
+
+                // --- 模态框逻辑 ---
+
+                // data参数用于编辑回显
+                const openModal = (type, data = null) => {
+                    activeModal.value = type;
+                    
+                    if (type === 'add-server') {
+                        Object.assign(serverForm, { id: '', name: '', ip: '', os: '', region: '', active: true });
+                    } else if (type === 'edit-server' && selectedServer.value) {
+                        Object.assign(serverForm, { ...selectedServer.value });
+                    } else if (type === 'add-port') {
+                        Object.assign(portForm, { port: '', service: '', state: 'OPEN', domain: '', info: '' });
+                    } else if (type === 'edit-port' && data) {
+                        // 记录原始端口号，用于API URL参数
+                        originalPort.value = data.port;
+                        // 填充表单
+                        Object.assign(portForm, { ...data });
+                    }
+                };
+
+                const closeModal = () => activeModal.value = null;
+
+                // --- 服务器操作 ---
+                const submitServer = async () => {
+                    const isEdit = activeModal.value === 'edit-server';
+                    const endpoint = isEdit ? `/update/server?id=${serverForm.id}` : `/create/server`;
+                    const method = isEdit ? 'PUT' : 'POST';
+                    const payload = { ...serverForm };
+                    if (!isEdit && !payload.id) payload.id = 'srv-' + Date.now();
+
+                    try {
+                        await api(endpoint, { method, body: JSON.stringify(payload) });
+                        await loadServers();
+                        closeModal();
+                    } catch (e) {}
+                };
+
+                const deleteServer = async () => {
+                    if (!selectedServer.value || !confirm(`Delete server ${selectedServer.value.name}?`)) return;
+                    try {
+                        await api(`/delete/server?id=${selectedServer.value.id}`, { method: 'DELETE' });
+                        selectedServer.value = null;
+                        await loadServers();
+                    } catch (e) {}
+                };
+
+                // --- 端口操作 ---
+                const submitPort = async () => {
+                    if (!selectedServer.value) return;
+                    
+                    try {
+                        if (activeModal.value === 'add-port') {
+                            // 新增模式
+                            await api(`/create/port?id=${selectedServer.value.id}`, {
+                                method: 'POST',
+                                body: JSON.stringify(portForm)
+                            });
+                        } else {
+                            // 编辑模式
+                            // 注意：URL中的port是旧端口号(originalPort)，Body中的port是新端口号
+                            await api(`/update/port?id=${selectedServer.value.id}&port=${originalPort.value}`, {
+                                method: 'PUT',
+                                body: JSON.stringify(portForm)
+                            });
+                        }
+                        
+                        await loadServers();
+                        closeModal();
+                    } catch (e) {}
+                };
+
+                const deletePort = async (port) => {
+                    if (!confirm(`Delete port ${port}?`)) return;
+                    try {
+                        await api(`/delete/port?id=${selectedServer.value.id}&port=${port}`, { method: 'DELETE' });
+                        await loadServers();
+                    } catch (e) {}
+                };
+
+                const stateClass = (state) => {
+                    switch(state) {
+                        case 'OPEN': return 'bg-green-500/10 text-green-400 border-green-500/20';
+                        case 'FILTERED': return 'bg-orange-500/10 text-orange-400 border-orange-500/20';
+                        case 'CLOSED': return 'bg-red-500/10 text-red-400 border-red-500/20';
+                        default: return 'bg-gray-500/10 text-gray-400';
+                    }
+                };
+
+                return {
+                    view, loginForm, loading, errorMsg, authKey,
+                    servers, selectedServer, activeModal,
+                    serverForm, portForm,
+                    handleLogin, logout, selectServer,
+                    openModal, closeModal,
+                    submitServer, deleteServer,
+                    submitPort, deletePort,
+                    stateClass
+                };
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>
