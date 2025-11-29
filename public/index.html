@@ -2,13 +2,13 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>PortSentinel Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Inter', sans-serif; }
+        body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
         .bg-app-dark { background-color: #0b0e14; }
         .bg-sidebar { background-color: #0f131a; }
         .bg-card-dark { background-color: #111827; }
@@ -16,7 +16,8 @@
         .input-dark { background-color: #1f2937; border-color: #374151; color: white; }
         .input-dark:focus { border-color: #3b82f6; outline: none; ring: 1px; ring-color: #3b82f6; }
         
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        /* 移动端滚动条优化 */
+        ::-webkit-scrollbar { width: 4px; height: 4px; }
         ::-webkit-scrollbar-track { background: #0f131a; }
         ::-webkit-scrollbar-thumb { background: #374151; border-radius: 3px; }
         
@@ -29,7 +30,7 @@
     <div id="app" class="h-full w-full">
         
         <transition name="fade">
-            <div v-if="view === 'login'" class="h-full w-full flex items-center justify-center">
+            <div v-if="view === 'login'" class="h-full w-full flex items-center justify-center px-4">
                 <div class="bg-card-dark p-8 rounded-xl shadow-2xl w-full max-w-md border border-gray-800">
                     <div class="text-center mb-8">
                         <h1 class="text-3xl font-bold tracking-tight text-white mb-2">PortSentinel</h1>
@@ -57,200 +58,228 @@
             </div>
         </transition>
 
-        <div v-if="view === 'dashboard'" class="h-full w-full flex overflow-hidden">
+        <div v-if="view === 'dashboard'" class="h-full w-full flex overflow-hidden relative">
             
-            <aside class="w-72 bg-sidebar border-r border-gray-800 flex flex-col shrink-0 z-20">
-                <div class="p-5 border-b border-gray-800 flex items-center justify-between">
+            <aside :class="[
+                'bg-sidebar border-r border-gray-800 flex flex-col shrink-0 z-20 transition-all',
+                selectedServer ? 'hidden md:flex md:w-72' : 'w-full md:w-72'
+            ]">
+                <div class="p-5 border-b border-gray-800 flex items-center justify-between sticky top-0 bg-sidebar z-10">
                     <h2 class="text-lg font-bold text-white">Servers</h2>
-                    <button @click="openModal('add-server')" class="bg-blue-600 hover:bg-blue-500 text-xs font-medium px-3 py-1.5 rounded text-white transition">+ New</button>
+                    <button @click="openModal('add-server')" class="bg-blue-600 hover:bg-blue-500 text-xs font-medium px-3 py-1.5 rounded text-white transition active:scale-95">+ New</button>
                 </div>
     
-                <div class="flex-1 overflow-y-auto p-3 space-y-1">
+                <div class="flex-1 overflow-y-auto p-3 space-y-2">
                     <div v-for="srv in servers" :key="srv.id" 
                          @click="selectServer(srv)"
-                         :class="['p-3 rounded-lg cursor-pointer border transition-all relative group', 
-                                  selectedServer?.id === srv.id ? 'bg-blue-900/10 border-blue-900/50' : 'border-transparent hover:bg-gray-800/50']">
+                         :class="['p-4 md:p-3 rounded-lg cursor-pointer border transition-all relative group', 
+                                  selectedServer?.id === srv.id ? 'bg-blue-900/10 border-blue-900/50' : 'border-transparent bg-gray-800/20 md:bg-transparent hover:bg-gray-800/50']">
                         
                         <div v-if="selectedServer?.id === srv.id" class="absolute left-0 top-0 bottom-0 w-1 bg-blue-500 rounded-l-lg"></div>
 
                         <div class="flex justify-between items-start mb-1 pl-2">
-                            <div class="flex items-center gap-2">
-                                <div :class="['w-2 h-2 rounded-full', srv.active ? 'bg-green-500 shadow-[0_0_5px_rgba(34,197,94,0.5)]' : 'bg-gray-600']"></div>
-                                <span class="font-medium text-gray-200 text-sm">{{ srv.name }}</span>
+                            <div class="flex items-center gap-3 md:gap-2">
+                                <div :class="['w-2.5 h-2.5 md:w-2 md:h-2 rounded-full', srv.active ? 'bg-green-500 shadow-[0_0_5px_rgba(34,197,94,0.5)]' : 'bg-gray-600']"></div>
+                                <span class="font-medium text-gray-100 text-base md:text-sm">{{ srv.name }}</span>
                             </div>
                             <span class="bg-gray-800 text-gray-400 text-[10px] font-bold px-1.5 py-0.5 rounded">{{ srv.ports?.length || 0 }}</span>
                         </div>
                         <div class="flex justify-between items-end pl-2 mt-2">
-                            <div class="text-gray-500 text-[11px] font-mono">{{ srv.ip }}</div>
-                            <div class="text-gray-600 text-[11px]">{{ srv.region }}</div>
+                            <div class="text-gray-500 text-xs md:text-[11px] font-mono">{{ srv.ip }}</div>
+                            <div class="text-gray-600 text-xs md:text-[11px]">{{ srv.region }}</div>
+                        </div>
+                        <div class="md:hidden absolute right-3 top-1/2 -translate-y-1/2 text-gray-600">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
                         </div>
                     </div>
                 </div>
 
-                <div class="p-4 border-t border-gray-800 flex justify-between items-center text-xs bg-sidebar">
-                    <span class="text-gray-500">Key: <span class="text-gray-400 font-mono">{{ authKey.substring(0,8) }}...</span></span>
-                    <button @click="logout" class="text-red-400 hover:text-red-300 transition-colors">Logout</button>
+                <div class="p-4 border-t border-gray-800 flex justify-between items-center text-xs bg-sidebar safe-area-bottom">
+                    <span class="text-gray-500">Key: <span class="text-gray-400 font-mono">{{ authKey.substring(0,6) }}...</span></span>
+                    <button @click="logout" class="text-red-400 hover:text-red-300 transition-colors p-2 -mr-2">Logout</button>
                 </div>
             </aside>
     
-            <main class="flex-1 overflow-y-auto p-6 md:p-8 relative bg-app-dark" v-if="selectedServer">
+            <main :class="['flex-1 overflow-y-auto bg-app-dark relative', selectedServer ? 'w-full block' : 'hidden md:flex md:flex-col md:items-center md:justify-center']">
                 
-                <div class="bg-card-dash border border-gray-800 rounded-xl p-6 mb-6 shadow-sm">
-                    <div class="flex flex-col md:flex-row justify-between md:items-center gap-4">
-                        <div>
-                            <div class="flex items-center gap-3 mb-2">
-                                <h1 class="text-2xl font-bold text-white">{{ selectedServer.name }}</h1>
-                                <span v-if="selectedServer.active" class="px-2 py-0.5 rounded text-xs font-bold bg-green-500/10 text-green-500 border border-green-500/20">ACTIVE</span>
-                                <span v-else class="px-2 py-0.5 rounded text-xs font-bold bg-gray-500/10 text-gray-500 border border-gray-500/20">INACTIVE</span>
-                            </div>
-                            <div class="flex flex-wrap items-center text-sm text-gray-400 font-mono gap-x-4 gap-y-1">
-                                <span class="flex items-center gap-1"><span class="text-gray-600">IP:</span> {{ selectedServer.ip }}</span>
-                                <span class="flex items-center gap-1"><span class="text-gray-600">OS:</span> {{ selectedServer.os }}</span>
-                                <span class="flex items-center gap-1"><span class="text-gray-600">LOC:</span> {{ selectedServer.region }}</span>
-                            </div>
-                        </div>
-                        <div class="flex items-center gap-3">
-                            <button @click="openModal('edit-server')" class="px-4 py-2 bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-lg text-sm text-gray-300 transition">Edit Server</button>
-                            <button @click="deleteServer" class="px-4 py-2 bg-red-900/20 hover:bg-red-900/40 text-red-400 border border-red-900/30 rounded-lg text-sm transition">Delete</button>
-                        </div>
-                    </div>
-                </div>
-    
-                <div class="bg-card-dash border border-gray-800 rounded-xl p-6 shadow-sm">
-                    <div class="flex justify-between items-center mb-6">
-                        <h3 class="text-lg font-semibold text-white">Port Configuration</h3>
-                        <button @click="openModal('add-port')" class="bg-blue-600 hover:bg-blue-500 text-white font-medium py-2 px-4 rounded-lg text-sm transition shadow-lg shadow-blue-900/20">
-                            + Add Port
+                <div v-if="selectedServer">
+                    <div class="md:hidden flex items-center p-4 border-b border-gray-800 bg-sidebar sticky top-0 z-30">
+                        <button @click="selectedServer = null" class="flex items-center text-gray-400 hover:text-white mr-4">
+                            <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+                            Back
                         </button>
+                        <span class="font-bold text-sm truncate">{{ selectedServer.name }}</span>
                     </div>
-    
-                    <div class="w-full overflow-x-auto">
-                        <table class="w-full text-left text-sm whitespace-nowrap">
-                            <thead>
-                                <tr class="text-gray-500 border-b border-gray-800">
-                                    <th class="pb-3 px-2 font-semibold uppercase text-xs">Port</th>
-                                    <th class="pb-3 px-2 font-semibold uppercase text-xs">Service</th>
-                                    <th class="pb-3 px-2 font-semibold uppercase text-xs">Domain</th>
-                                    <th class="pb-3 px-2 font-semibold uppercase text-xs">Info</th>
-                                    <th class="pb-3 px-2 font-semibold uppercase text-xs">State</th>
-                                    <th class="pb-3 px-2 font-semibold uppercase text-xs text-right">Action</th>
-                                </tr>
-                            </thead>
-                            <tbody class="text-gray-300">
-                                <tr v-for="port in selectedServer.ports" :key="port.port" class="border-b border-gray-800/50 hover:bg-gray-800/30 transition">
-                                    <td class="py-3 px-2 font-mono font-medium text-blue-400">{{ port.port }}</td>
-                                    <td class="py-3 px-2">{{ port.service }}</td>
-                                    <td class="py-3 px-2 text-gray-400 font-mono text-xs">{{ port.domain || '-' }}</td>
-                                    <td class="py-3 px-2 text-gray-500 text-xs">{{ port.info || '-' }}</td>
-                                    <td class="py-3 px-2">
-                                        <span :class="stateClass(port.state)" class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold border">
-                                            {{ port.state }}
-                                        </span>
-                                    </td>
-                                    <td class="py-3 px-2 text-right">
-                                        <div class="flex items-center justify-end gap-3">
-                                            <button @click="openModal('edit-port', port)" class="text-blue-400 hover:text-blue-300 transition" title="Edit Port">
-                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                                                </svg>
-                                            </button>
-                                            <button @click="deletePort(port.port)" class="text-gray-500 hover:text-red-400 transition" title="Delete Port">
-                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                                </svg>
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                                <tr v-if="!selectedServer.ports || selectedServer.ports.length === 0">
-                                    <td colspan="6" class="py-8 text-center text-gray-500">No ports configured for this server.</td>
-                                </tr>
-                            </tbody>
-                        </table>
+
+                    <div class="p-4 md:p-8 pb-20 md:pb-8"> <div class="bg-card-dash border border-gray-800 rounded-xl p-5 md:p-6 mb-6 shadow-sm">
+                            <div class="flex flex-col md:flex-row justify-between md:items-center gap-4">
+                                <div>
+                                    <div class="flex items-center gap-3 mb-2">
+                                        <h1 class="text-xl md:text-2xl font-bold text-white">{{ selectedServer.name }}</h1>
+                                        <span v-if="selectedServer.active" class="px-2 py-0.5 rounded text-xs font-bold bg-green-500/10 text-green-500 border border-green-500/20">ACTIVE</span>
+                                        <span v-else class="px-2 py-0.5 rounded text-xs font-bold bg-gray-500/10 text-gray-500 border border-gray-500/20">INACTIVE</span>
+                                    </div>
+                                    <div class="flex flex-wrap items-center text-sm text-gray-400 font-mono gap-x-4 gap-y-2">
+                                        <span class="flex items-center gap-1 bg-gray-800/50 px-2 py-1 rounded md:bg-transparent md:p-0"><span class="text-gray-600">IP:</span> {{ selectedServer.ip }}</span>
+                                        <span class="flex items-center gap-1 bg-gray-800/50 px-2 py-1 rounded md:bg-transparent md:p-0"><span class="text-gray-600">OS:</span> {{ selectedServer.os }}</span>
+                                        <span class="flex items-center gap-1 bg-gray-800/50 px-2 py-1 rounded md:bg-transparent md:p-0"><span class="text-gray-600">LOC:</span> {{ selectedServer.region }}</span>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-3 mt-2 md:mt-0">
+                                    <button @click="openModal('edit-server')" class="flex-1 md:flex-none justify-center px-4 py-2 bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-lg text-sm text-gray-300 transition">Edit</button>
+                                    <button @click="deleteServer" class="flex-1 md:flex-none justify-center px-4 py-2 bg-red-900/20 hover:bg-red-900/40 text-red-400 border border-red-900/30 rounded-lg text-sm transition">Delete</button>
+                                </div>
+                            </div>
+                        </div>
+            
+                        <div class="bg-card-dash border border-gray-800 rounded-xl p-4 md:p-6 shadow-sm">
+                            <div class="flex justify-between items-center mb-4 md:mb-6">
+                                <h3 class="text-lg font-semibold text-white">Ports</h3>
+                                <button @click="openModal('add-port')" class="bg-blue-600 hover:bg-blue-500 text-white font-medium py-2 px-3 rounded-lg text-xs md:text-sm transition shadow-lg shadow-blue-900/20 flex items-center gap-1">
+                                    <span class="text-lg leading-none">+</span> Add
+                                </button>
+                            </div>
+            
+                            <div class="w-full overflow-x-auto -mx-4 md:mx-0 px-4 md:px-0">
+                                <table class="w-full text-left text-sm whitespace-nowrap min-w-[500px] md:min-w-0">
+                                    <thead>
+                                        <tr class="text-gray-500 border-b border-gray-800">
+                                            <th class="pb-3 px-2 font-semibold uppercase text-xs w-16">Port</th>
+                                            <th class="pb-3 px-2 font-semibold uppercase text-xs w-20">Svc</th> <th class="pb-3 px-2 font-semibold uppercase text-xs hidden sm:table-cell">Domain</th>
+                                            <th class="pb-3 px-2 font-semibold uppercase text-xs hidden md:table-cell">Info</th>
+                                            <th class="pb-3 px-2 font-semibold uppercase text-xs w-24">State</th>
+                                            <th class="pb-3 px-2 font-semibold uppercase text-xs text-right w-20">Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="text-gray-300">
+                                        <tr v-for="port in selectedServer.ports" :key="port.port" class="border-b border-gray-800/50 hover:bg-gray-800/30 transition">
+                                            <td class="py-3 px-2 font-mono font-medium text-blue-400">{{ port.port }}</td>
+                                            <td class="py-3 px-2">{{ port.service }}</td>
+                                            <td class="py-3 px-2 text-gray-400 font-mono text-xs hidden sm:table-cell">{{ port.domain || '-' }}</td>
+                                            <td class="py-3 px-2 text-gray-500 text-xs hidden md:table-cell max-w-[150px] truncate" :title="port.info">{{ port.info || '-' }}</td>
+                                            <td class="py-3 px-2">
+                                                <span :class="stateClass(port.state)" class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold border">
+                                                    {{ port.state }}
+                                                </span>
+                                            </td>
+                                            <td class="py-3 px-2 text-right">
+                                                <div class="flex items-center justify-end gap-3">
+                                                    <button @click="openModal('edit-port', port)" class="p-1 text-blue-400 hover:bg-blue-900/20 rounded transition">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                                        </svg>
+                                                    </button>
+                                                    <button @click="deletePort(port.port)" class="p-1 text-gray-500 hover:text-red-400 hover:bg-red-900/20 rounded transition">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                        </svg>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        <tr v-if="!selectedServer.ports || selectedServer.ports.length === 0">
+                                            <td colspan="6" class="py-8 text-center text-gray-500 text-sm">No ports configured.</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
                     </div>
                 </div>
-            </main>
 
-            <main v-else class="flex-1 flex items-center justify-center text-gray-500 flex-col gap-2">
-                <p>Select a server from the sidebar</p>
+                <div v-else class="text-gray-500 flex flex-col items-center gap-3">
+                    <svg class="w-12 h-12 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01"></path></svg>
+                    <p>Select a server from the sidebar</p>
+                </div>
             </main>
         </div>
 
-        <div v-if="activeModal" class="fixed inset-0 bg-black/80 z-50 flex items-center justify-center backdrop-blur-sm" @click.self="closeModal">
+        <div v-if="activeModal" class="fixed inset-0 bg-black/90 z-50 flex items-center justify-center backdrop-blur-sm p-4" @click.self="closeModal">
             
-            <div v-if="activeModal === 'add-server' || activeModal === 'edit-server'" class="bg-card-dark p-6 rounded-xl shadow-2xl w-full max-w-lg border border-gray-700">
-                <h3 class="text-xl font-bold mb-6 text-white">{{ activeModal === 'add-server' ? 'New Server' : 'Edit Server' }}</h3>
+            <div v-if="activeModal === 'add-server' || activeModal === 'edit-server'" class="bg-card-dark p-6 rounded-xl shadow-2xl w-full max-w-lg border border-gray-700 max-h-[90vh] overflow-y-auto">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-xl font-bold text-white">{{ activeModal === 'add-server' ? 'New Server' : 'Edit Server' }}</h3>
+                    <button @click="closeModal" class="text-gray-500 text-2xl leading-none">&times;</button>
+                </div>
                 <form @submit.prevent="submitServer">
                     <div class="mb-4">
                         <label class="block text-gray-400 text-xs font-medium mb-1">Server Name</label>
-                        <input v-model="serverForm.name" type="text" class="input-dark w-full py-2 px-3 rounded text-sm" required>
+                        <input v-model="serverForm.name" type="text" class="input-dark w-full py-3 px-3 rounded text-sm" required>
                     </div>
-                    <div class="grid grid-cols-2 gap-4 mb-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                         <div>
                             <label class="block text-gray-400 text-xs font-medium mb-1">IP Address</label>
-                            <input v-model="serverForm.ip" type="text" class="input-dark w-full py-2 px-3 rounded text-sm" required>
+                            <input v-model="serverForm.ip" type="text" class="input-dark w-full py-3 px-3 rounded text-sm" required>
                         </div>
                         <div>
                             <label class="block text-gray-400 text-xs font-medium mb-1">OS Version</label>
-                            <input v-model="serverForm.os" type="text" class="input-dark w-full py-2 px-3 rounded text-sm">
+                            <input v-model="serverForm.os" type="text" class="input-dark w-full py-3 px-3 rounded text-sm">
                         </div>
                     </div>
                     <div class="grid grid-cols-2 gap-4 mb-6">
                         <div>
                             <label class="block text-gray-400 text-xs font-medium mb-1">Region</label>
-                            <input v-model="serverForm.region" type="text" class="input-dark w-full py-2 px-3 rounded text-sm">
+                            <input v-model="serverForm.region" type="text" class="input-dark w-full py-3 px-3 rounded text-sm">
                         </div>
-                        <div class="flex items-center pt-5">
-                            <label class="flex items-center cursor-pointer">
-                                <input v-model="serverForm.active" type="checkbox" class="form-checkbox h-4 w-4 text-blue-600 rounded bg-gray-800 border-gray-600 focus:ring-offset-gray-900">
-                                <span class="ml-2 text-sm text-gray-300">Active Status</span>
+                        <div class="flex items-center pt-6 md:pt-5">
+                            <label class="flex items-center cursor-pointer p-2 md:p-0">
+                                <input v-model="serverForm.active" type="checkbox" class="form-checkbox h-5 w-5 md:h-4 md:w-4 text-blue-600 rounded bg-gray-800 border-gray-600 focus:ring-offset-gray-900">
+                                <span class="ml-3 md:ml-2 text-sm text-gray-300">Active Status</span>
                             </label>
                         </div>
                     </div>
 
-                    <div class="flex justify-end space-x-3">
-                        <button type="button" @click="closeModal" class="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-xs text-white transition">Cancel</button>
-                        <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-lg text-xs font-medium text-white transition">Save</button>
+                    <div class="flex justify-end space-x-3 pt-2 border-t border-gray-800">
+                        <button type="button" @click="closeModal" class="px-4 py-3 md:py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm md:text-xs text-white transition w-full md:w-auto">Cancel</button>
+                        <button type="submit" class="px-4 py-3 md:py-2 bg-blue-600 hover:bg-blue-500 rounded-lg text-sm md:text-xs font-medium text-white transition w-full md:w-auto">Save</button>
                     </div>
                 </form>
             </div>
 
-            <div v-if="activeModal === 'add-port' || activeModal === 'edit-port'" class="bg-card-dark p-6 rounded-xl shadow-2xl w-full max-w-lg border border-gray-700">
-                <h3 class="text-xl font-bold mb-6 text-white">{{ activeModal === 'add-port' ? 'Add Port Rule' : 'Edit Port Rule' }}</h3>
+            <div v-if="activeModal === 'add-port' || activeModal === 'edit-port'" class="bg-card-dark p-6 rounded-xl shadow-2xl w-full max-w-lg border border-gray-700 max-h-[90vh] overflow-y-auto">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-xl font-bold text-white">{{ activeModal === 'add-port' ? 'Add Port Rule' : 'Edit Port Rule' }}</h3>
+                    <button @click="closeModal" class="text-gray-500 text-2xl leading-none">&times;</button>
+                </div>
                 <form @submit.prevent="submitPort">
                     <div class="grid grid-cols-3 gap-4 mb-4">
                         <div class="col-span-1">
                             <label class="block text-gray-400 text-xs font-medium mb-1">Port</label>
-                            <input v-model.number="portForm.port" type="number" class="input-dark w-full py-2 px-3 rounded text-sm" placeholder="80" required>
+                            <input v-model.number="portForm.port" type="number" class="input-dark w-full py-3 px-3 rounded text-sm" placeholder="80" required>
                         </div>
                         <div class="col-span-2">
                             <label class="block text-gray-400 text-xs font-medium mb-1">Service</label>
-                            <input v-model="portForm.service" type="text" class="input-dark w-full py-2 px-3 rounded text-sm" placeholder="HTTP" required>
+                            <input v-model="portForm.service" type="text" class="input-dark w-full py-3 px-3 rounded text-sm" placeholder="HTTP" required>
                         </div>
                     </div>
                     
                     <div class="mb-4">
                         <label class="block text-gray-400 text-xs font-medium mb-1">State</label>
-                        <select v-model="portForm.state" class="input-dark w-full py-2 px-3 rounded text-sm">
-                            <option value="OPEN">OPEN</option>
-                            <option value="FILTERED">FILTERED</option>
-                            <option value="CLOSED">CLOSED</option>
-                        </select>
+                        <div class="relative">
+                            <select v-model="portForm.state" class="input-dark w-full py-3 px-3 rounded text-sm appearance-none">
+                                <option value="OPEN">OPEN</option>
+                                <option value="FILTERED">FILTERED</option>
+                                <option value="CLOSED">CLOSED</option>
+                            </select>
+                            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-400">
+                                <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="mb-4">
                         <label class="block text-gray-400 text-xs font-medium mb-1">Domain (Optional)</label>
-                        <input v-model="portForm.domain" type="text" class="input-dark w-full py-2 px-3 rounded text-sm" placeholder="e.g. app.example.com">
+                        <input v-model="portForm.domain" type="text" class="input-dark w-full py-3 px-3 rounded text-sm" placeholder="e.g. app.example.com">
                     </div>
 
                     <div class="mb-6">
                         <label class="block text-gray-400 text-xs font-medium mb-1">Info / Description</label>
-                        <input v-model="portForm.info" type="text" class="input-dark w-full py-2 px-3 rounded text-sm" placeholder="e.g. Main production entry">
+                        <input v-model="portForm.info" type="text" class="input-dark w-full py-3 px-3 rounded text-sm" placeholder="e.g. Main production entry">
                     </div>
 
-                    <div class="flex justify-end space-x-3">
-                        <button type="button" @click="closeModal" class="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-xs text-white transition">Cancel</button>
-                        <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-lg text-xs font-medium text-white transition">{{ activeModal === 'add-port' ? 'Add Port' : 'Save Changes' }}</button>
+                    <div class="flex justify-end space-x-3 pt-2 border-t border-gray-800">
+                        <button type="button" @click="closeModal" class="px-4 py-3 md:py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm md:text-xs text-white transition w-full md:w-auto">Cancel</button>
+                        <button type="submit" class="px-4 py-3 md:py-2 bg-blue-600 hover:bg-blue-500 rounded-lg text-sm md:text-xs font-medium text-white transition w-full md:w-auto">{{ activeModal === 'add-port' ? 'Add Port' : 'Save Changes' }}</button>
                     </div>
                 </form>
             </div>
