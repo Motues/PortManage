@@ -317,12 +317,15 @@
                 // --- API 封装 ---
                 const api = async (endpoint, options = {}) => {
                     const sep = endpoint.includes('?') ? '&' : '?';
-                    const finalUrl = `${API_BASE}${endpoint}${sep}key=${authKey.value}`;
+                    const finalUrl = `${API_BASE}${endpoint}`;
 
                     try {
                         const res = await fetch(finalUrl, {
                             ...options,
-                            headers: { 'Content-Type': 'application/json', ...options.headers }
+                            headers: { 
+                                'Content-Type': 'application/json', ...options.headers,
+                                'Authorization': `${authKey.value}`
+                            }
                         });
 
                         const data = await res.json();

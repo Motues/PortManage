@@ -49,9 +49,10 @@ const writeServersData = (data: any[]): void => {
 
 // 获取所有服务器信息
 export const getServers = async (ctx: Koa.Context, next: Koa.Next): Promise<void> => {
-  const key = getQueryString(ctx.query.key, "");
+  // const key = getQueryString(ctx.query.key, "");
+  const key = ctx.get("Authorization");
 
-  if (!checkKey(key)) {
+  if (!key || !checkKey(key)) {
     ctx.status = 401;
     ctx.body = { message: "Invalid key" };
     return;
@@ -69,9 +70,10 @@ export const getServers = async (ctx: Koa.Context, next: Koa.Next): Promise<void
 
 // 创建新服务器
 export const createServer = async (ctx: Koa.Context, next: Koa.Next): Promise<void> => {
-  const key = getQueryString(ctx.query.key, "");
+  // const key = getQueryString(ctx.query.key, "");
+  const key = ctx.get("Authorization");
   
-  if (!checkKey(key)) {
+  if (!key || !checkKey(key)) {
     ctx.status = 401;
     ctx.body = { message: "Invalid key" };
     return;
@@ -102,10 +104,11 @@ export const createServer = async (ctx: Koa.Context, next: Koa.Next): Promise<vo
 
 // 更新服务器信息
 export const updateServer = async (ctx: Koa.Context, next: Koa.Next): Promise<void> => {
-  const key = getQueryString(ctx.query.key, "");
+  // const key = getQueryString(ctx.query.key, "");
+  const key = ctx.get("Authorization");
   const id = getQueryString(ctx.query.id, "");
   
-  if (!checkKey(key)) {
+  if (!key || !checkKey(key)) {
     ctx.status = 401;
     ctx.body = { message: "Invalid key" };
     return;
@@ -135,10 +138,11 @@ export const updateServer = async (ctx: Koa.Context, next: Koa.Next): Promise<vo
 
 // 删除服务器
 export const deleteServer = async (ctx: Koa.Context, next: Koa.Next): Promise<void> => {
-  const key = getQueryString(ctx.query.key, "");
+  // const key = getQueryString(ctx.query.key, "");
+  const key = ctx.get("Authorization");
   const id = getQueryString(ctx.query.id, "");
   
-  if (!checkKey(key)) {
+  if (!key || !checkKey(key)) {
     ctx.status = 401;
     ctx.body = { message: "Invalid key" };
     return;
@@ -167,10 +171,11 @@ export const deleteServer = async (ctx: Koa.Context, next: Koa.Next): Promise<vo
 
 // 添加端口到服务器
 export const createPort = async (ctx: Koa.Context, next: Koa.Next): Promise<void> => {
-  const key = getQueryString(ctx.query.key, "");
+  // const key = getQueryString(ctx.query.key, "");
+  const key = ctx.get("Authorization");
   const serverId = getQueryString(ctx.query.id, "");
   
-  if (!checkKey(key)) {
+  if (!key || !checkKey(key)) {
     ctx.status = 401;
     ctx.body = { message: "Invalid key" };
     return;
@@ -201,11 +206,12 @@ export const createPort = async (ctx: Koa.Context, next: Koa.Next): Promise<void
 
 // 更新服务器端口
 export const updatePort = async (ctx: Koa.Context, next: Koa.Next): Promise<void> => {
-  const key = getQueryString(ctx.query.key, "");
+  // const key = getQueryString(ctx.query.key, "");
+  const key = ctx.get("Authorization");
   const serverId = getQueryString(ctx.query.id, "");
   const portNumber = getQueryString(ctx.query.port, "");
   
-  if (!checkKey(key)) {
+  if (!key || !checkKey(key)) {
     ctx.status = 401;
     ctx.body = { message: "Invalid key" };
     return;
@@ -242,11 +248,12 @@ export const updatePort = async (ctx: Koa.Context, next: Koa.Next): Promise<void
 
 // 删除服务器端口
 export const deletePort = async (ctx: Koa.Context, next: Koa.Next): Promise<void> => {
-  const key = getQueryString(ctx.query.key, "");
+  // const key = getQueryString(ctx.query.key, "");
+  const key = ctx.get("Authorization");
   const serverId = getQueryString(ctx.query.id, "");
   const portNumber = getQueryString(ctx.query.port, "");
   
-  if (!checkKey(key)) {
+  if (!key || !checkKey(key)) {
     ctx.status = 401;
     ctx.body = { message: "Invalid key" };
     return;

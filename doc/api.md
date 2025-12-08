@@ -1,5 +1,7 @@
 # API
 
+请求头中必须添加 `Authorization`，值为key
+
 ## 登录（ POST `/api/login`）
 
 **请求体**：
@@ -26,10 +28,7 @@
 }
 ```
 
-## 获取服务器信息（ GET `/api/server&key=...`）
-
-**查询参数**：
-- `key`（必需）
+## 获取服务器信息（ GET `/api/server`）
 
 **响应**：
 `GET /api/server&key=...`
@@ -89,10 +88,7 @@
 }
 ```
 
-## 添加服务器信息（ POST `/api/create/server&key=...`）
-
-**查询参数**：
-- `key`（必需）
+## 添加服务器信息（ POST `/api/create/server`）
 
 **请求体**：
 ```json
@@ -121,10 +117,9 @@
 }
 ```
 
-## 修改服务器信息（ PUT `/api/update/server&key=...&id=...`）
+## 修改服务器信息（ PUT `/api/update/server?id=...`）
 
 **查询参数**：
-- `key`（必需）
 - `id`（必需）
 
 **请求体**：
@@ -155,10 +150,9 @@
 }
 ```
 
-## 删除服务器信息（ DELETE `/api/delete/server&key=...&id=...`）
+## 删除服务器信息（ DELETE `/api/delete/server?id=...`）
 
 **查询参数**：
-- `key`（必需）
 - `id`（必需）
 
 **响应**：
@@ -181,10 +175,9 @@
 
 
 
-## 添加端口信息（ POST `/api/create/port&key=...&id=...`）
+## 添加端口信息（ POST `/api/create/port?id=...`）
 
 **查询参数**：
-- `key`（必需）
 - `id`（必需）
 
 **请求体**：
@@ -212,10 +205,9 @@
 }
 ```
 
-## 修改端口信息（ PUT `/api/update/port&key=...&id=...&port=...`）
+## 修改端口信息（ PUT `/api/update/port?id=...&port=...`）
 
 **查询参数**：
-- `key`（必需）
 - `id`（必需）
 - `port`（必需）
 
@@ -244,9 +236,9 @@
 }
 ```
 
-## 删除端口信息（ DELETE `/api/delete/port&key=...&id=...&port=...`）
+## 删除端口信息（ DELETE `/api/delete/port?id=...&port=...`）
+
 **查询参数**：
-- `key`（必需）
 - `id`（必需）
 - `port`（必需）
 
